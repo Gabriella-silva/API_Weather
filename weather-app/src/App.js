@@ -5,7 +5,8 @@ function App() {
   const [search, setSearch] = useState(''); // Gerencia o valor do input de busca
 
   const searchPressed = () => {
-    console.log('Pesquisando...', search);
+    console.log('Pesquisando...');
+    console.log(search)
   };
 
   return (
@@ -21,9 +22,11 @@ function App() {
             placeholder="Enter city..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+
+         />
         <button onClick={searchPressed}>Search</button>
+
+        </div>
 
         {/* LOCALIZAÇÃO E CLIMA (estático por enquanto) */}
         <p>São Paulo, BR</p>
