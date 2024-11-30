@@ -1,0 +1,324 @@
+import React, { useState } from "react";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  StyleSheet, 
+  Alert, 
+  FlatList, 
+  ActivityIndicator, 
+  ImageBackground 
+} from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import { BlurView } from "expo-blur";
+import { TouchableOpacity } from "react-native";
+
+// Configuração da API
+const api = {
+  key: "96188f5f3cd37b3101831a3ca8862f0a", // Substitua por sua chave válida
+  base: "https://api.openweathermap.org/data/2.5/",
+};
+
+// Tela HomePage (Previsão Atual)
+const HomePage = () => {
+  const [search, setSearch] = useState("");
+  const [weather, setWeather] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const searchWeather = () => {
+    if (!search.trim()) {
+      Alert.alert("Erro", "Por favor, insira o nome de uma cidade.");
+      return;
+    }
+    setLoading(true);
+    fetch(`${api.base}weather?q=${search}&units=metric&APPID=${api.key}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Cidade não encontrada");
+        return res.json();
+      })
+      .then((data) => setWeather(data))
+      .catch((err) => Alert.alert("Erro", err.message))
+      .finally(() => setLoading(false));
+  };
+
+  return (
+  
+      <View style={styles.container}>
+        <Text style={styles.title}>Previsão do Tempo</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Digite o nome da cidade..."
+          onChangeText={(text) => setSearch(text)}
+        />
+        <TouchableOpacity 
+          style={styles.searchButton} 
+          onPress={searchWeather} 
+          disabled={loading}
+        >
+          <Text style={styles.searchButtonText}>
+            {loading ? "Buscando..." : "Buscar"}
+          </Text>
+        </TouchableOpacity>
+
+        {loading && <ActivityIndicator size="large" color="#0000ff" />}
+        {weather.main ? (
+          <BlurView intensity={20} tint="light" style={styles.blurContainer}>
+            <Text style={styles.cityName}>{weather.name}</Text>
+            <View style={styles.temperatureContainer}>
+              <Text style={styles.temperatureText}>{Math.round(weather.main.temp)}°C</Text>
+            </View>
+            <Text style={styles.weatherDescription}>{weather.weather[0].description}</Text>
+            <View style={styles.weatherDetails}>
+              <Text style={styles.detailText}>🌡️ Máxima: {Math.round(weather.main.temp_max)}°C</Text>
+              <Text style={styles.detailText}>🌡️ Mínima: {Math.round(weather.main.temp_min)}°C</Text>
+              <Text style={styles.detailText}>💧 Umidade: {weather.main.humidity}%</Text>
+              <Text style={styles.detailText}>🌬️ Vento: {Math.round(weather.wind.speed)} km/h</Text>
+            </View>
+          </BlurView>
+        ) : (
+          <Text style={styles.infoText}>Digite uma cidade para obter a previsão do tempo.</Text>
+        )}
+      </View>
+
+  );
+};
+
+// Tela WeeklyForecast (Previsão Semanal)
+const WeeklyForecast = () => {
+  const [search, setSearch] = useState("");
+  const [forecast, setForecast] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchForecast = () => {
+    if (!search.trim()) {
+      Alert.alert("Erro", "Por favor, insira o nome de uma cidade.");
+      return;
+    }
+    setLoading(true);
+    fetch(`${api.base}forecast?q=${search}&units=metric&APPID=${api.key}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Cidade não encontrada");
+        return res.json();
+      })
+      .then((data) => setForecast(data.list))
+      .catch((err) => Alert.alert("Erro", err.message))
+      .finally(() => setLoading(false));
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Previsão Semanal</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Digite o nome da cidade..."
+        onChangeText={(text) => setSearch(text)}
+      />
+      <TouchableOpacity 
+        style={styles.searchButton} 
+        onPress={fetchForecast} 
+        disabled={loading}
+      >
+        <Text style={styles.searchButtonText}>
+          {loading ? "Buscando..." : "Buscar"}
+        </Text>
+      </TouchableOpacity>
+
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {forecast.length > 0 ? (
+        <FlatList
+          data={forecast}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.weatherItem}>
+              <Text>{new Date(item.dt * 1000).toLocaleDateString()}</Text>
+              <View style={styles.temperatureContainer}>
+                <Text style={styles.temperatureText}>{Math.round(item.main.temp)}°C</Text>
+              </View>
+              <Text>{item.weather[0].description}</Text>
+            </View>
+          )}
+        />
+      ) : (
+        <Text style={styles.infoText}>Digite uma cidade para ver a previsão semanal.</Text>
+      )}
+    </View>
+  );
+};
+
+// Tela Popular Cities Weather (Clima em Cidades Populares)
+const CidadesPopularesWeather = () => {
+  const cityIDs = [2643743, 5128581, 2950159]; // IDs de Londres, Nova York, Berlim
+  const [citiesWeather, setCitiesWeather] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchCitiesWeather = () => {
+    setLoading(true);
+    fetch(`${api.base}group?id=${cityIDs.join(",")}&units=metric&APPID=${api.key}`)
+      .then((res) => res.json())
+      .then((data) => setCitiesWeather(data.list))
+      .catch((err) => Alert.alert("Erro", err.message))
+      .finally(() => setLoading(false));
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Clima em Cidades Populares</Text>
+      <TouchableOpacity 
+        style={styles.searchButton} 
+        onPress={fetchCitiesWeather} 
+        disabled={loading}
+      >
+        <Text style={styles.searchButtonText}>
+          {loading ? "Carregando..." : "Atualizar"}
+        </Text>
+      </TouchableOpacity>
+      
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {citiesWeather.length > 0 ? (
+        <FlatList
+          data={citiesWeather}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.weatherItem}>
+              <Text>{item.name}</Text>
+              <View style={styles.temperatureContainer}>
+                <Text style={styles.temperatureText}>{Math.round(item.main.temp)}°C</Text>
+              </View>
+              <Text>{item.weather[0].description}</Text>
+            </View>
+          )}
+        />
+      ) : (
+        <Text style={styles.infoText}>Clique em "Atualizar" para obter os dados.</Text>
+      )}
+    </View>
+  );
+};
+
+// Tela Weather Tips (Dicas sobre Clima)
+const WeatherTips = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Dicas sobre o Clima</Text>
+      <Text>Aprenda a interpretar os dados meteorológicos:</Text>
+      <Text>- Temperatura acima de 30°C indica clima quente.</Text>
+      <Text>- Céu limpo sugere baixa possibilidade de chuva.</Text>
+    </View>
+  );
+};
+
+// Navegação do Drawer
+const Drawer = createDrawerNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Drawer.Navigator initialRouteName="Home">
+        <Drawer.Screen name="Home" component={HomePage} />
+        <Drawer.Screen name="Clima Semanal" component={WeeklyForecast} />
+        <Drawer.Screen name="Cidades Populares" component={CidadesPopularesWeather} />
+        <Drawer.Screen name="Dicas Climáticas" component={WeatherTips} />
+      </Drawer.Navigator>
+    </NavigationContainer>
+  );
+}
+const styles = StyleSheet.create({
+container: {
+  flex: 1, // Faz o container ocupar toda a tela
+  justifyContent: "center", // Centraliza verticalmente
+  alignItems: "center", // Centraliza horizontalmente
+  padding: 20,
+  backgroundColor: "rgba(255, 255, 255, 0.5)", // Transparência sobre a imagem
+  borderRadius: 20,
+  marginHorizontal: 20, // Deixa espaço nas laterais
+},
+  
+  title: {
+    fontSize: 30,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#3F5C6A",
+  },
+  input: {
+    height: 50,
+    borderColor: "#6F635B",
+    borderWidth: 1,
+    marginBottom: 10,
+    width: "100%",
+    padding: 10,
+    borderRadius: 23,
+    backgroundColor: "#F5F5F5",
+    color: "#221712",
+  },
+  searchButton: {
+    backgroundColor: "#3F5C6A",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 50,
+    resizeMode:"contain",
+    marginTop: 10,
+    elevation: 5,
+  },
+  searchButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+ blurContainer: {
+  backgroundColor: "rgba(255, 255, 255, 0.1)",
+  borderRadius: 23,
+  padding: 50,
+  width: "100%", // Garante que o BlurView ocupe toda a largura do container
+  alignItems: "center", // Alinha os itens dentro do BlurView no centro
+  justifyContent: "center", // Alinha os itens verticalmente no centro
+
+  },
+  cityName: {
+    fontSize: 30,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#221712",
+  },
+  temperatureText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#221712",
+  },
+  weatherDescription: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#221712",
+  },
+  weatherDetails: {
+    marginTop: 10,
+  },
+  detailText: {
+    fontSize: 14,
+    color: "#221712",
+  },
+  infoText: {
+    fontSize: 16,
+    color: "#221712",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  weatherItem: {
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+    alignItems: "center",
+  },
+  temperatureContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+});
+
